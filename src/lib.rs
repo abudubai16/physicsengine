@@ -1,105 +1,51 @@
-use macroquad::prelude::*;
-
-mod basics;
-use basics::*;
-
-#[derive(Debug, Clone, PartialEq, Copy)]
-pub struct Circle {
-    pub position: Vector,
-    pub velocity: Velocity,
-    pub rotation: Rotation,
-    pub radius: f32,
-    pub color: Color,
-}
-
-impl Circle {
-    fn init_random() -> Self {
-        let radius = rand::gen_range(10.0, 30.0);
-        Circle {
-            position: Vector {
-                x: rand::gen_range(radius, screen_width() - radius),
-                y: rand::gen_range(radius, screen_height() - radius),
-            },
-            velocity: Velocity {
-                x: rand::gen_range(-10.0, 10.0),
-                y: rand::gen_range(-10.0, 10.0),
-            },
-            rotation: Rotation {
-                angle: 0.0,
-                angular_velocity: 0.0,
-            },
-            radius: radius,
-            color: RED,
-        }
-    }
-
-    fn check_collision(&self, other: &Circle) -> bool {
-        if !self.simple_collision(other) {
-            return false;
-        }
-        let dx = self.position.x - other.position.x;
-        let dy = self.position.y - other.position.y;
-        let distance_squared = dx * dx + dy * dy;
-        let radius_sum = self.radius + other.radius;
-        distance_squared < radius_sum * radius_sum
-    }
-}
-
-impl Shape for Circle {
-    fn position(&self) -> Vector {
-        self.position
-    }
-
-    fn velocity(&self) -> Velocity {
-        self.velocity
-    }
-
-    fn rotation(&self) -> Rotation {
-        self.rotation
-    }
-
-    fn color(&self) -> Color {
-        self.color
-    }
-
-    fn new() -> Self {
-        Circle::init_random()
-    }
-
-    fn update_position(&mut self) {
-        self.position.x += self.velocity.x;
-        self.position.y += self.velocity.y;
-    }
-
-    fn update_rotation(&mut self) {
-        self.rotation.angle += self.rotation.angular_velocity;
-    }
-}
-
-impl BoundingBox for Circle {
-    fn get_bounding_box(&self) -> (f32, f32, f32, f32) {
-        (
-            self.position.x - self.radius,
-            self.position.x + self.radius,
-            self.position.y - self.radius,
-            self.position.y + self.radius,
-        )
-    }
-}
+pub mod basics;
+pub mod shapes;
 
 pub mod simulation {
-    use super::Circle;
+    use rand::{Rng, thread_rng};
+
     use super::basics::*;
-    use macroquad::prelude::*;
+    use super::shapes::*;
+
+    use std::f32::consts::PI;
+
+    use macroquad::prelude::{
+        RED, WHITE, clear_background, draw_circle, get_frame_time, next_frame, screen_height,
+        screen_width,
+    };
+
+    #[allow(dead_code)]
+    fn build_frame() -> Vec<Rectangle> {
+        let mut edges: Vec<Rectangle> = Vec::new();
+        edges.push(Rectangle::new());
+        edges
+    }
+
+    fn init_random() -> Circle {
+        let mut rng = thread_rng();
+        let radius = rng.gen_range(10.0..30.0);
+        Circle {
+            pos: Vector {
+                x: rng.gen_range(radius..screen_width() - radius),
+                y: rng.gen_range(radius..screen_height() - radius),
+                z: 0.0,
+            },
+            vel: Vector {
+                x: rng.gen_range(-10.0..10.0),
+                y: rng.gen_range(-10.0..10.0),
+                z: 0.0,
+            },
+            rot: ZERO_VEC,
+            angular_vel: ZERO_VEC,
+            radius: radius,
+            color: RED,
+            mass: PI * radius * radius,
+        }
+    }
 
     fn draw_circles(circles: &Vec<Circle>) {
         for circle in circles.iter() {
-            draw_circle(
-                circle.position.x,
-                circle.position.y,
-                circle.radius,
-                circle.color,
-            );
+            draw_circle(circle.pos.x, circle.pos.y, circle.radius, circle.color());
         }
     }
 
@@ -110,6 +56,7 @@ pub mod simulation {
         }
     }
 
+    #[allow(dead_code)]
     fn mtv() {
         // Minimum Translation Vector for collision resolution
     }
@@ -120,8 +67,10 @@ pub mod simulation {
         let g = 1.0;
         let dt = get_frame_time();
 
+        println!("Value of g, frame time: {}, {}", g, dt);
+
         for _ in 0..20 {
-            circles.push(Circle::init_random());
+            circles.push(init_random());
         }
 
         loop {
