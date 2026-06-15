@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f32::consts;
 
 use crate::basics::*;
 use macroquad::prelude::{Color, RED};
@@ -9,9 +9,13 @@ pub struct Circle {
     pub vel: Vector,
     pub rot: Vector,
     pub angular_vel: Vector,
+
     pub radius: f32,
     pub color: Color,
-    pub mass: f32,
+    pub mass_inv: f32,
+    pub inertia_inv: f32,
+
+    pub force_accum: Vector,
 }
 
 impl Circle {
@@ -28,27 +32,47 @@ impl Circle {
     }
 }
 
-impl Shape for Circle {
+impl Particle for Circle {
     fn position(&self) -> Vector {
         self.pos
     }
-
     fn velocity(&self) -> Vector {
         self.vel
     }
-
-    fn color(&self) -> Color {
-        self.color
-    }
-
     fn rotation(&self) -> Vector {
         self.rot
     }
-
     fn ang_vel(&self) -> Vector {
         self.angular_vel
     }
-
+    fn damping(&self) -> f32 {
+        0.99
+    }
+    fn inv_mass(&self) -> f32 {
+        self.mass_inv
+    }
+    fn inv_inertia(&self) -> f32 {
+        self.inertia_inv
+    }
+    fn force_accumulator(&self) -> Vector {
+        self.force_accum
+    }
+    fn clear_accumulator(&mut self) {
+        self.force_accum = ZERO_VEC;
+    }
+    fn add_force(&mut self, force: &Vector) {
+        self.force_accum = self.force_accum + *force;
+    }
+    fn integrate(&mut self, dt: f32) {
+        self.pos = self.pos + self.vel * dt;
+        self.vel = self.vel + self.force_accum * self.mass_inv * dt;
+        self.vel = self.vel * self.damping();
+        self.rot = self.rot + self.angular_vel * dt;
+        self.angular_vel = self.angular_vel * self.damping();
+    }
+    fn color(&self) -> Color {
+        self.color
+    }
     fn new() -> Self {
         Circle {
             pos: ZERO_VEC,
@@ -57,19 +81,10 @@ impl Shape for Circle {
             angular_vel: ZERO_VEC,
             radius: 1.0,
             color: RED,
-            mass: PI,
+            mass_inv: 1.0 / consts::PI,
+            inertia_inv: 1.0 / (0.5 * consts::PI),
+            force_accum: ZERO_VEC,
         }
-    }
-
-    fn update_position(&mut self) {
-        self.pos.x += self.vel.x;
-        self.pos.y += self.vel.y;
-    }
-
-    fn update_rotation(&mut self) {
-        self.rot.x += self.angular_vel.x;
-        self.rot.y += self.angular_vel.y;
-        self.rot.z += self.angular_vel.z;
     }
 }
 

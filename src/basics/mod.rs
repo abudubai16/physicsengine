@@ -1,9 +1,9 @@
 pub mod boundingbox;
-pub mod shape;
+pub mod particle;
 pub mod vector;
 
 pub use boundingbox::BoundingBox;
-pub use shape::Shape;
+pub use particle::{Particle, ParticleEntry};
 pub use vector::Vector;
 
 pub const G: Vector = Vector {
