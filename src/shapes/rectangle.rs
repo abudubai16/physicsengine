@@ -31,6 +31,9 @@ impl Particle for Rectangle {
     fn velocity(&self) -> Vector {
         self.vel
     }
+    fn set_velocity(&mut self, velocity: Vector) {
+        self.vel = velocity;
+    }
     fn rotation(&self) -> Vector {
         self.rot
     }

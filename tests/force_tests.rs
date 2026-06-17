@@ -5,31 +5,28 @@ mod forces {
 
     #[test]
     fn test_gravity_force() {
-        let gravity_gen = GravityGenerator {
-            gravity: Vector {
-                x: 0.0,
-                y: -9.81,
-                z: 0.0,
-            },
-        };
-        let gravity_gen: ForceGeneratorEntry = Box::new(gravity_gen);
-        let particle: ParticleEntry = Box::from(Circle::new());
-        let mut registry = ForceRegistry::new();
-        registry.add(gravity_gen, particle);
-        registry.update_forces(1.0);
-        let expected_velocity = Vector {
+        let mut particle_store = ParticleStore::new();
+        let particle = Box::new(Circle::new());
+        particle_store.add_particle(particle);
+        let force_gen = Box::new(GravityGenerator::new(Vector {
+            x: 0.0,
+            y: -9.81,
+            z: 0.0,
+        }));
+        let mut force_registry = ForceRegistry::new();
+        force_registry.add(force_gen, 0);
+        let dt = 1.0;
+        force_registry.update_forces(&mut particle_store, dt);
+
+        let particle = particle_store.get_particle_mut(0).unwrap();
+        particle.integrate(dt);
+        let expected_vel = Vector {
             x: 0.0,
             y: -9.81,
             z: 0.0,
         };
-        let particle = registry.entries[0].1.as_mut();
-        particle.integrate(1.0);
-
-        println!(
-            "Particle velocity after gravity force: {:?}",
-            particle.velocity()
-        );
-
-        assert!(particle.velocity().y - expected_velocity.y < 0.1);
+        println!("Expected velocity: {:?}", particle.velocity());
+        println!("Actual velocity: {:?}", expected_vel);
+        assert!((particle.velocity() - expected_vel).y.abs() < 0.1);
     }
 }

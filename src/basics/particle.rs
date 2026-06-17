@@ -17,6 +17,8 @@ pub trait Particle {
     fn inv_inertia(&self) -> f32;
     fn force_accumulator(&self) -> Vector;
 
+    fn set_velocity(&mut self, velocity: Vector);
+
     fn clear_accumulator(&mut self);
     fn integrate(&mut self, dt: f32);
     fn add_force(&mut self, force: &Vector);
@@ -25,4 +27,40 @@ pub trait Particle {
     fn new() -> Self
     where
         Self: Sized;
+}
+
+/// The owner of the particles within the simulation, it handles the storage and provides ownership of
+///the particles to other systems that need to access them. Responsible for handling the lifetime of
+/// the particles and ensuring that they are properly managed and cleaned up when no longer needed.
+#[allow(dead_code)]
+pub struct ParticleStore {
+    particles: Vec<ParticleEntry>,
+}
+
+impl ParticleStore {
+    pub fn new() -> Self {
+        Self {
+            particles: Vec::new(),
+        }
+    }
+
+    pub fn get_particle_mut(&mut self, index: usize) -> Option<&mut ParticleEntry> {
+        self.particles.get_mut(index)
+    }
+
+    pub fn get_particle(&self, index: usize) -> Option<&ParticleEntry> {
+        self.particles.get(index)
+    }
+
+    pub fn add_particle(&mut self, particle: ParticleEntry) {
+        self.particles.push(particle);
+    }
+
+    pub fn remove_particle(&mut self, index: usize) -> Option<ParticleEntry> {
+        if index < self.particles.len() {
+            Some(self.particles.remove(index))
+        } else {
+            None
+        }
+    }
 }

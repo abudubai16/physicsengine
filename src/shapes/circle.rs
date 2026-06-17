@@ -36,6 +36,9 @@ impl Particle for Circle {
     fn position(&self) -> Vector {
         self.pos
     }
+    fn set_velocity(&mut self, velocity: Vector) {
+        self.vel = velocity;
+    }
     fn velocity(&self) -> Vector {
         self.vel
     }

@@ -1,4 +1,5 @@
 pub mod basics;
+pub mod contact;
 pub mod forces;
 pub mod shapes;
 
