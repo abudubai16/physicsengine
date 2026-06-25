@@ -3,7 +3,7 @@ pub mod particle;
 pub mod vector;
 
 pub use boundingbox::BoundingBox;
-pub use particle::{Particle, ParticleEntry, ParticleStore};
+pub use particle::{Particle, ParticleContactEntry, ParticleEntry, ParticlePair, ParticleStore};
 pub use vector::Vector;
 
 pub const G: Vector = Vector {

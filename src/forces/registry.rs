@@ -27,9 +27,8 @@ impl ForceRegistry {
     pub fn update_forces(&self, particle_store: &mut ParticleStore, dt: f32) {
         for i in 0..self.entries.len() {
             let (force_gen, particle_index) = &self.entries[i];
-            if let Some(particle) = particle_store.get_particle_mut(*particle_index) {
-                force_gen.update_force(particle, dt);
-            }
+            let particle = particle_store.get_particle_mut(*particle_index);
+            force_gen.update_force(particle, dt);
         }
     }
 
