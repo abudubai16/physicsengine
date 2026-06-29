@@ -27,7 +27,7 @@ impl Particle for ParticleCircle {
     }
 
     fn damping(&self) -> f32 {
-        1.0
+        0.999
     }
     fn inv_mass(&self) -> f32 {
         self.mass_inv

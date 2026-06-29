@@ -72,6 +72,7 @@ impl ParticleContact {
         if separating_velocity > 0.0 {
             return;
         }
+        // Calculate the new separating velocity after restitution, should be postive
         let mut new_sep_velocity = -separating_velocity * self.restitution;
 
         let acc_caused_velocity = {
@@ -102,10 +103,6 @@ impl ParticleContact {
             inv0 + inv1
         };
 
-        if total_inverse_mass <= 0.0 {
-            return;
-        }
-
         let impulse = delta_velocity / total_inverse_mass;
         let impulse_per_imass = self.contact_normal * impulse;
 
@@ -119,7 +116,7 @@ impl ParticleContact {
         match self.particle_index.1 {
             Some(index) => {
                 let p1 = particle_store.get_particle_mut(index);
-                let v1 = p1.velocity() + impulse_per_imass * -p1.inv_mass();
+                let v1 = p1.velocity() - impulse_per_imass * p1.inv_mass();
                 p1.set_velocity(v1);
             }
             _ => {}
@@ -151,13 +148,13 @@ impl ParticleContact {
         // Now take mutable borrows one at a time
         {
             let p0 = particle_store.get_particle_mut(self.particle_index.0);
-            let new_position = p0.position() + move_per_imass * p0.inv_mass();
+            let new_position = p0.position() - move_per_imass * p0.inv_mass();
             p0.set_position(new_position);
         } // mutable borrow of p0 drops here
 
         if let Some(index) = self.particle_index.1 {
             let p1 = particle_store.get_particle_mut(index);
-            let new_position = p1.position() + move_per_imass * -p1.inv_mass();
+            let new_position = p1.position() + move_per_imass * p1.inv_mass();
             p1.set_position(new_position);
         }
     }

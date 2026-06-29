@@ -1,7 +1,9 @@
 use super::generator::ParticleForceGenerator;
-use crate::basics::{ParticleEntry, Vector};
+use crate::basics::{ParticleStore, Vector};
 
 use libm;
+
+use macroquad::prelude::draw_line;
 
 /// A gravity generator applies a constant force to a particle, in the direction of gravity.
 pub struct GravityGenerator {
@@ -14,7 +16,8 @@ impl GravityGenerator {
 }
 
 impl ParticleForceGenerator for GravityGenerator {
-    fn update_force(&self, particle: &mut ParticleEntry, _: f32) {
+    fn update_force(&self, particle_store: &mut ParticleStore, particle_index: usize, _: f32) {
+        let particle = particle_store.get_particle_mut(particle_index);
         assert!(particle.inv_mass() > 0.0);
         particle.add_force(&(self.gravity * (1.0 / particle.inv_mass())));
     }
@@ -22,13 +25,13 @@ impl ParticleForceGenerator for GravityGenerator {
 
 /// A particle spring generator applies a force to a particle that is connected to another particle by a spring.
 pub struct ParticleSpringGenerator {
-    other: ParticleEntry,
+    other: usize, // Index to the other particle within the particle store
     spring_constant: f32,
     rest_length: f32,
 }
 
 impl ParticleSpringGenerator {
-    pub fn new(other: ParticleEntry, spring_constant: f32, rest_length: f32) -> Self {
+    pub fn new(other: usize, spring_constant: f32, rest_length: f32) -> Self {
         assert!(spring_constant > 0.0);
         assert!(rest_length >= 0.0);
         Self {
@@ -40,12 +43,26 @@ impl ParticleSpringGenerator {
 }
 
 impl ParticleForceGenerator for ParticleSpringGenerator {
-    fn update_force(&self, particle: &mut ParticleEntry, _: f32) {
-        let d = particle.position() - self.other.position();
+    fn update_force(&self, particle_store: &mut ParticleStore, particle_index: usize, _: f32) {
+        let p1_pos = particle_store.get_particle(self.other).position();
+        let particle = particle_store.get_particle_mut(particle_index);
+        let d = p1_pos - particle.position();
         let distance = d.magnitude();
         let norm_d = d.normalize();
         let force = norm_d * (distance - self.rest_length) * self.spring_constant;
         particle.add_force(&force);
+    }
+    fn draw_force(&self, particle_store: &ParticleStore, particle_index: usize) {
+        let particle = particle_store.get_particle(particle_index);
+        let other_particle = particle_store.get_particle(self.other);
+        draw_line(
+            particle.position().x,
+            particle.position().y,
+            other_particle.position().x,
+            other_particle.position().y,
+            2.0,
+            macroquad::color::GREEN,
+        );
     }
 }
 
@@ -69,24 +86,36 @@ impl AnchoredSpringGenerator {
 }
 
 impl ParticleForceGenerator for AnchoredSpringGenerator {
-    fn update_force(&self, particle: &mut ParticleEntry, _: f32) {
+    fn update_force(&self, particle_store: &mut ParticleStore, particle_index: usize, _: f32) {
+        let particle = particle_store.get_particle_mut(particle_index);
         let d = particle.position() - self.anchor;
         let distance = d.magnitude();
         let norm_d = d.normalize();
-        let force = norm_d * (distance - self.rest_length) * self.spring_constant;
+        let force = norm_d * (self.rest_length - distance) * self.spring_constant;
         particle.add_force(&force);
+    }
+    fn draw_force(&self, particle_store: &ParticleStore, particle_index: usize) {
+        let particle = particle_store.get_particle(particle_index);
+        draw_line(
+            particle.position().x,
+            particle.position().y,
+            self.anchor.x,
+            self.anchor.y,
+            2.0,
+            macroquad::color::GREEN,
+        );
     }
 }
 
 /// A bungee generator is like a spring generator, but it only applies a force if the particles are further apart than the rest length.
 pub struct BungeeGenerator {
-    other: ParticleEntry,
+    other: usize,
     spring_constant: f32,
     rest_length: f32,
 }
 
 impl BungeeGenerator {
-    pub fn new(particle: ParticleEntry, spring_constant: f32, rest_length: f32) -> Self {
+    pub fn new(particle: usize, spring_constant: f32, rest_length: f32) -> Self {
         Self {
             other: particle,
             spring_constant,
@@ -96,15 +125,29 @@ impl BungeeGenerator {
 }
 
 impl ParticleForceGenerator for BungeeGenerator {
-    fn update_force(&self, particle: &mut ParticleEntry, _: f32) {
-        let d = particle.position() - self.other.position();
+    fn update_force(&self, particle_store: &mut ParticleStore, particle_index: usize, _: f32) {
+        let p1_pos = particle_store.get_particle(self.other).position();
+        let particle = particle_store.get_particle_mut(particle_index);
+        let d = particle.position() - p1_pos;
         let distance = d.magnitude();
+        // println!("P0: {}, P1: {}", particle_index, self.other);
         if distance <= self.rest_length {
             return;
         }
         let norm_d = d.normalize();
-        let force = norm_d * (distance - self.rest_length) * self.spring_constant;
+        let force = norm_d * (self.rest_length - distance) * self.spring_constant;
         particle.add_force(&force);
+    }
+    fn draw_force(&self, particle_store: &ParticleStore, particle_index: usize) {
+        let particle = particle_store.get_particle(particle_index);
+        draw_line(
+            particle.position().x,
+            particle.position().y,
+            particle_store.get_particle(self.other).position().x,
+            particle_store.get_particle(self.other).position().y,
+            2.0,
+            macroquad::color::GREEN,
+        );
     }
 }
 
@@ -127,7 +170,8 @@ impl BouyancyGenerator {
 }
 
 impl ParticleForceGenerator for BouyancyGenerator {
-    fn update_force(&self, particle: &mut ParticleEntry, _: f32) {
+    fn update_force(&self, particle_store: &mut ParticleStore, particle_index: usize, _: f32) {
+        let particle = particle_store.get_particle_mut(particle_index);
         let d = particle.position().y;
         if d >= self.water_height + self.max_depth {
             return;
@@ -169,7 +213,8 @@ impl StiffSpringGenerator {
 }
 
 impl ParticleForceGenerator for StiffSpringGenerator {
-    fn update_force(&self, particle: &mut ParticleEntry, dt: f32) {
+    fn update_force(&self, particle_store: &mut ParticleStore, particle_index: usize, dt: f32) {
+        let particle = particle_store.get_particle_mut(particle_index);
         if self.gamma == 0.0 {
             return;
         }
@@ -182,5 +227,16 @@ impl ParticleForceGenerator for StiffSpringGenerator {
         let accel = (target - position) * (1.0 / libm::pow(dt as f64, 2.0)) as f32
             - particle.velocity() * (1.0 / dt);
         particle.add_force(&(accel * (1.0 / particle.inv_mass())));
+    }
+    fn draw_force(&self, particle_store: &ParticleStore, particle_index: usize) {
+        let particle = particle_store.get_particle(particle_index);
+        draw_line(
+            particle.position().x,
+            particle.position().y,
+            self.anchor.x,
+            self.anchor.y,
+            2.0,
+            macroquad::color::GREEN,
+        );
     }
 }

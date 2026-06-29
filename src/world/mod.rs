@@ -6,7 +6,6 @@ pub struct ParticleWorld {
     pub force_registry: ForceRegistry,
     pub contact_resolver: ParticleContactResolver,
     pub particle_store: ParticleStore,
-    // pub particle_generator: ParticleContactGenerator,
     pub contacts: Vec<ParticleContact>,
     pub max_contacts: usize,
 
@@ -51,48 +50,24 @@ impl ParticleWorld {
                 if penetration <= 0.0 {
                     let contact = ParticleContact::new(
                         (i, Some(j)),
-                        0.9,
-                        (p1.position() - p0.position()).normalize(),
+                        0.5,
+                        (p0.position() - p1.position()).normalize(),
                         -penetration,
                         ContactType::ParticleParticle,
                     );
-                    // println!(
-                    //     "Generating a contact between particle {} and particle {}",
-                    //     i, j
-                    // );
                     self.contacts.push(contact);
                     counter += 1;
                 }
             }
-
-            // Check for contacts with the ground (y = 0)
-            // if p0.position().y - self.particle_size >= self.screen_height {
-            //     let contact = ParticleContact::new(
-            //         (i, None),
-            //         0.9,
-            //         Vector {
-            //             x: 0.0,
-            //             y: -1.0,
-            //             z: 0.0,
-            //         },
-            //         self.screen_height - (p0.position().y - self.particle_size),
-            //     );
-            //     println!("Generating a contact with the ground for particle {}", i);
-            //     self.contacts.push(contact);
-            //     counter += 1;
-            // }
-
-            //Check for constraint contacts
         }
+        //Check for constraint contacts
         for (_, constraint) in self.constraints.iter().enumerate() {
             let some_contact = constraint.fill_contact(&self.particle_store);
             if let Some(contact) = some_contact {
-                // println!("Generating a contact for constraint {}", i);
                 self.contacts.push(contact);
                 counter += 1;
             }
         }
-        // println!("Total contacts generated: {} \n", counter);
         counter
     }
 
@@ -116,7 +91,7 @@ impl ParticleWorld {
             .resolve_contacts(&self.contacts, &mut self.particle_store, dt);
     }
 
-    pub fn draw(&self, highlight_forces: bool) {
+    pub fn draw(&self, _highlight_forces: bool) {
         // Draw particles
         for i in 0..self.particle_store.num_particles() {
             let particle = self.particle_store.get_particle(i);
@@ -139,23 +114,9 @@ impl ParticleWorld {
             );
         }
 
-        // Draw force directions (optional)
-        if !highlight_forces {
-            return;
-        }
-        for i in 0..self.particle_store.num_particles() {
-            let particle = self.particle_store.get_particle(i);
-            let pos = particle.position();
-            let force = particle.force_accumulator().normalize();
-
-            macroquad::shapes::draw_line(
-                pos.x,
-                pos.y,
-                pos.x + force.x * 20.0,
-                pos.y + force.y * 20.0,
-                20.0,
-                macroquad::color::GREEN,
-            );
+        for i in 0..self.force_registry.num_entries() {
+            let (force_gen, particle_index) = self.force_registry.get_entry(i);
+            force_gen.draw_force(&self.particle_store, *particle_index);
         }
     }
 }

@@ -31,7 +31,7 @@ impl ParticleLinkConstraint for ParticleCable {
     fn current_length(&self, particle_store: &ParticleStore) -> f32 {
         let p1 = particle_store.get_particle(self.particles.0);
         let p2 = particle_store.get_particle(self.particles.1);
-        (p1.position() - p2.position()).magnitude()
+        (p2.position() - p1.position()).magnitude()
     }
 
     fn fill_contact(&self, particle_store: &ParticleStore) -> Option<ParticleContact> {
@@ -41,7 +41,7 @@ impl ParticleLinkConstraint for ParticleCable {
         }
         let p1 = particle_store.get_particle(self.particles.0);
         let p2 = particle_store.get_particle(self.particles.1);
-        let normal = (p1.position() - p2.position()).normalize();
+        let normal = (p2.position() - p1.position()).normalize();
 
         Some(ParticleContact::new(
             (self.particles.0, Some(self.particles.1)),
@@ -71,7 +71,7 @@ impl ParticleLinkConstraint for ParticleRod {
     fn current_length(&self, particle_store: &ParticleStore) -> f32 {
         let p1 = particle_store.get_particle(self.particles.0);
         let p2 = particle_store.get_particle(self.particles.1);
-        (p1.position() - p2.position()).magnitude()
+        (p2.position() - p1.position()).magnitude()
     }
     fn fill_contact(&self, particle_store: &ParticleStore) -> Option<ParticleContact> {
         let length = self.current_length(particle_store);
@@ -80,7 +80,7 @@ impl ParticleLinkConstraint for ParticleRod {
         }
         let p1 = particle_store.get_particle(self.particles.0);
         let p2 = particle_store.get_particle(self.particles.1);
-        let normal = (p1.position() - p2.position()).normalize();
+        let normal = (p2.position() - p1.position()).normalize();
 
         Some(ParticleContact::new(
             (self.particles.0, Some(self.particles.1)),

@@ -27,8 +27,7 @@ impl ForceRegistry {
     pub fn update_forces(&self, particle_store: &mut ParticleStore, dt: f32) {
         for i in 0..self.entries.len() {
             let (force_gen, particle_index) = &self.entries[i];
-            let particle = particle_store.get_particle_mut(*particle_index);
-            force_gen.update_force(particle, dt);
+            force_gen.update_force(particle_store, *particle_index, dt);
         }
     }
 
@@ -38,5 +37,14 @@ impl ForceRegistry {
         } else {
             None
         }
+    }
+
+    pub fn num_entries(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn get_entry(&self, index: usize) -> &ForceRegistryEntry {
+        assert!(index < self.entries.len(), "Index out of bounds");
+        self.entries.get(index).unwrap()
     }
 }
